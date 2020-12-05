@@ -16,7 +16,7 @@
 (defclone plus c/plus)
 (defclone star c/star)
 (defclone rep c/rep)
-(defclone alt c/alt) 
+(defclone alt c/alt)
 (defclone ord c/ord)
 (defclone cat c/cat)
 (defclone string c/string)
@@ -25,10 +25,11 @@
 (defclone regexp c/regexp)
 (defclone nt c/nt)
 (defclone look c/look)
+(defclone matching-look c/matching-look)
 (defclone neg c/neg)
 (defclone hide c/hide)
 (defclone hide-tag c/hide-tag)
 
 (defclone ebnf cfg/ebnf)
 (defclone abnf abnf/abnf)
-       
+

@@ -8,7 +8,7 @@
             [instaparse.util :refer [throw-runtime-exception]]
             [instaparse.combinators-source :refer
              [Epsilon opt plus star rep alt ord cat string-ci string
-              string-ci regexp nt look neg hide hide-tag unicode-char]]
+              string-ci regexp nt look matching-look neg hide hide-tag unicode-char]]
             #?(:cljs [goog.string.format])
             [clojure.walk :as walk])
   #?(:cljs (:require-macros [instaparse.abnf :refer [precompile-cljs-grammar]])))
@@ -36,8 +36,8 @@ you'll have to keep in mind when transforming)."
    :LF (string "\u000A")
    :LWSP (alt (alt (string "\u0020") (string "\u0009")) ;WSP
               (star
-                (cat (string "\u000D\u000A") ;CRLF
-                     (alt (string "\u0020") (string "\u0009"))))) ;WSP
+               (cat (string "\u000D\u000A") ;CRLF
+                    (alt (string "\u0020") (string "\u0009"))))) ;WSP
    :OCTET (regexp "[\\u0000-\\u00FF]")
    :SP (string "\u0020")
    :VCHAR (regexp "[\\u0021-\\u007E]")
@@ -107,27 +107,27 @@ regexp = #\"#'[^'\\\\]*(?:\\\\.[^'\\\\]*)*'\"
    (defmacro precompile-cljs-grammar
      []
      (let [combinators (red/apply-standard-reductions
-                         :hiccup (cfg/ebnf (str abnf-grammar-common
-                                                abnf-grammar-cljs-only)))]
+                        :hiccup (cfg/ebnf (str abnf-grammar-common
+                                               abnf-grammar-cljs-only)))]
        (walk/postwalk
-         (fn [form]
-           (cond
+        (fn [form]
+          (cond
              ;; Lists cannot be evaluated verbatim
-             (seq? form)
-             (list* 'list form)
+            (seq? form)
+            (list* 'list form)
 
              ;; Regexp terminals are handled differently in cljs
-             (= :regexp (:tag form))
-             `(merge (regexp ~(str (:regexp form)))
-                     ~(dissoc form :tag :regexp))
+            (= :regexp (:tag form))
+            `(merge (regexp ~(str (:regexp form)))
+                    ~(dissoc form :tag :regexp))
 
-             :else form))
-         combinators))))
+            :else form))
+        combinators))))
 
 #?(:clj
    (def abnf-parser (red/apply-standard-reductions
-                      :hiccup (cfg/ebnf (str abnf-grammar-common
-                                             abnf-grammar-clj-only))))
+                     :hiccup (cfg/ebnf (str abnf-grammar-common
+                                            abnf-grammar-clj-only))))
    :cljs
    (def abnf-parser (precompile-cljs-grammar)))
 
@@ -151,8 +151,8 @@ regexp = #\"#'[^'\\\\]*(?:\\\\.[^'\\\\]*)*'\"
   "Merges abnf-core map in with parsed grammar map"
   [grammar-map]
   (merge
-    (project abnf-core (distinct (mapcat cfg/seq-nt (vals grammar-map))))
-    grammar-map))
+   (project abnf-core (distinct (mapcat cfg/seq-nt (vals grammar-map))))
+   grammar-map))
 
 (defn hide-tag?
   "Tests whether parser was constructed with hide-tag"
@@ -180,8 +180,7 @@ regexp = #\"#'[^'\\\\]*(?:\\\\.[^'\\\\]*)*'\"
    (def parse-int js/parseInt))
 
 (def abnf-transformer
-  {
-   :rule hash-map
+  {:rule hash-map
    :hide-tag-rule (fn [tag rule] {tag (hide-tag rule)})
    :rulename-left #(if *case-insensitive*
                      (keyword (clojure.string/upper-case (apply str %&)))
@@ -204,20 +203,21 @@ regexp = #\"#'[^'\\\\]*(?:\\\\.[^'\\\\]*)*'\"
 
    :repetition (fn
                  ([repeat element]
-                   (cond
-                     (empty? repeat) (star element)
-                     (= (count repeat) 2) (rep (:low repeat) (:high repeat) element)
-                     (= (:low repeat) 1) (plus element)
-                     (= (:high repeat) 1) (opt element)
-                     :else (rep (or (:low repeat) 0)
-                                (or (:high repeat) #?(:clj Double/POSITIVE_INFINITY
-                                                      :cljs js/Infinity))
-                                element)))
+                  (cond
+                    (empty? repeat) (star element)
+                    (= (count repeat) 2) (rep (:low repeat) (:high repeat) element)
+                    (= (:low repeat) 1) (plus element)
+                    (= (:high repeat) 1) (opt element)
+                    :else (rep (or (:low repeat) 0)
+                               (or (:high repeat) #?(:clj Double/POSITIVE_INFINITY
+                                                     :cljs js/Infinity))
+                               element)))
                  ([element]
-                   element))
+                  element))
    :option opt
    :hide hide
    :look look
+   :matching-look matching-look
    :neg neg
    :regexp (comp regexp cfg/process-regexp)
    :char-val (fn [& cs]
@@ -248,8 +248,8 @@ Useful for combining with other combinators."
       (cond
         (instance? instaparse.gll.Failure tree)
         (throw-runtime-exception
-          "Error parsing grammar specification:\n"
-          (with-out-str (println tree)))
+         "Error parsing grammar specification:\n"
+         (with-out-str (println tree)))
         (= :alternation (ffirst tree))
         (t/transform abnf-transformer (first tree))
 
@@ -259,8 +259,8 @@ Useful for combining with other combinators."
   (let [rule-tree (gll/parse abnf-parser :rulelist spec false)]
     (if (instance? instaparse.gll.Failure rule-tree)
       (throw-runtime-exception
-        "Error parsing grammar specification:\n"
-        (with-out-str (println rule-tree)))
+       "Error parsing grammar specification:\n"
+       (with-out-str (println rule-tree)))
       (let [rules (t/transform abnf-transformer rule-tree)
             grammar-map (rules->grammar-map rules)
             start-production (first (first (first rules)))]

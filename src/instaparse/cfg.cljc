@@ -3,7 +3,7 @@
   (:refer-clojure :exclude [cat])
   (:require [instaparse.combinators-source :refer
              [Epsilon opt plus star rep alt ord cat string-ci string
-              string-ci regexp nt look neg hide hide-tag]]
+              string-ci regexp nt look matching-look neg hide hide-tag]]
             [instaparse.reduction :refer [apply-standard-reductions]]
             [instaparse.gll :refer [parse]]
             [instaparse.util :refer [throw-illegal-argument-exception
@@ -110,7 +110,7 @@
                      (hide (string ">")))
           :cat (plus (cat
                        opt-whitespace
-                       (alt (nt :factor) (nt :look) (nt :neg))
+                       (alt (nt :factor) (nt :look) (nt :matching-look) (nt :neg))
                        opt-whitespace))
           :string (alt
                     (regexp single-quoted-string)
@@ -142,6 +142,9 @@
           :look (cat (hide (string "&"))
                      opt-whitespace
                      (nt :factor))
+          :matching-look (cat (hide (string "&&"))
+                      opt-whitespace
+                      (nt :factor))
           :neg (cat (hide (string "!"))
                     opt-whitespace
                     (nt :factor))
@@ -267,6 +270,7 @@
     :star (star (build-rule (content tree)))
     :plus (plus (build-rule (content tree)))
     :look (look (build-rule (content tree)))
+    :matching-look (matching-look (build-rule (content tree)))
     :neg (neg (build-rule (content tree)))
     :epsilon Epsilon))
 
@@ -276,7 +280,7 @@
   (case (:tag parser)
     :nt [(:keyword parser)]
     (:string :string-ci :char :regexp :epsilon) []
-    (:opt :plus :star :look :neg :rep) (recur (:parser parser))
+    (:opt :plus :star :look :matching-look :neg :rep) (recur (:parser parser))
     (:alt :cat) (mapcat seq-nt (:parsers parser))
     :ord (mapcat seq-nt
                  [(:parser1 parser) (:parser2 parser)])))
